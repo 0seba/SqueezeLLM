@@ -32,6 +32,7 @@ def llama_eval(model, testenc, dev):
 
     testenc = testenc.input_ids
     nsamples = testenc.numel() // model.seqlen
+    # nsamples = 1
 
     use_cache = model.config.use_cache
     model.config.use_cache = False
@@ -298,15 +299,15 @@ if __name__ == '__main__':
         model = get_model(args.model)
         model.eval()
 
-    dataloader, testloader = get_loaders(
-        args.dataset,
-        nsamples=args.nsamples,
-        seed=args.seed,
-        model=args.model,
-        seqlen=model.seqlen,
-    )
-
     if args.benchmark:
+        dataloader, testloader = get_loaders(
+            args.dataset,
+            nsamples=args.nsamples,
+            seed=args.seed,
+            model=args.model,
+            seqlen=model.seqlen,
+        )
+        
         model = model.to(DEV)
         if args.benchmark:
             input_ids = next(iter(dataloader))[0][:, :args.benchmark]
@@ -327,7 +328,8 @@ if __name__ == '__main__':
     if args.eval:
         datasets = ['wikitext2', 'c4']
         for dataset in datasets:
-            dataloader, testloader = get_loaders(
-                dataset, seed=args.seed, model=args.model, seqlen=model.seqlen
+            testloader = get_loaders(
+                dataset, seed=args.seed, model=args.model, seqlen=model.seqlen, valonly=True,
             )
             llama_eval(model, testloader, DEV)
+            torch.cuda.empty_cache()
